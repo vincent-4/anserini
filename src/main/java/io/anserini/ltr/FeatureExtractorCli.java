@@ -40,11 +40,14 @@ import org.kohsuke.args4j.Option;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.HashMap;
+import java.util.Map;
 
 public class FeatureExtractorCli {
   static class DebugArgs {
@@ -188,28 +191,28 @@ public class FeatureExtractorCli {
     addFeature(utils,"text","text");
     addFeature(utils,"text_unlemm","text_unlemm");
     addFeature(utils,"text_bert_tok","text_bert_tok");
-    //System.out.println("Load IBM Models");
-    //utils.add(new
-    // IBMModel1("../FlexNeuART/collections/msmarco_doc/derived_data/giza/title_unlemm",
-    // "text_unlemm",
-    // "title_unlemm", "text_unlemm"));
-    // utils.add(new
-    // IBMModel1("../FlexNeuART/collections/msmarco_doc/derived_data/giza/url_unlemm",
-    // "text_unlemm",
-    // "url_unlemm", "text_unlemm"));
-    // utils.add(new
-    // IBMModel1("../FlexNeuART/collections/msmarco_doc/derived_data/giza/body",
-    // "text_unlemm", "body",
-    // "text_unlemm"));
-    // utils.add(new
-    // IBMModel1("../FlexNeuART/collections/msmarco_doc/derived_data/giza/text_bert_tok",
-    // "text_bert_tok",
-    // "text_bert_tok", "text_unlemm"));
-    // System.out.println("done load IBM");
 
+    Map<String, String> queries = new HashMap<>();
     File file = new File(cmdArgs.jsonFile);
-    BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file)));
-    String line;
+    if (!file.exists() || !file.canRead()) {
+      System.err.println("Query file does not exist or is not readable: " + cmdArgs.jsonFile);
+      return;
+    }
+
+    try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+      String line;
+      while ((line = reader.readLine()) != null) {
+        String[] fields = line.split("\t");
+        if (fields.length < 2) {
+          System.err.println("Skipping invalid line: " + line);
+          continue;
+        }
+        String qid = fields[0];
+        String query = fields[1];
+        queries.put(qid, query);
+      }
+    }
+
     List<String> qids = new ArrayList<>();
     int lineNum = 0;
     int offset = 0;
@@ -220,12 +223,33 @@ public class FeatureExtractorCli {
     for (int i = 0; i < names.size(); i++) {
       time[i] = 0;
     }
+
     long executionStart = System.nanoTime();
-    while ((line = reader.readLine()) != null && offset < 10000) {
-      lineNum++;
-      // if(lineNum<=760) continue;
-      qids.add(utils.debugExtract(line));
-      if (qids.size() >= 10) {
+    try (BufferedReader reader = new BufferedReader(new FileReader(cmdArgs.jsonFile))) {
+      String line;
+      while ((line = reader.readLine()) != null && offset < 10000) {
+        lineNum++;
+        qids.add(utils.debugExtract(line));
+        if (qids.size() >= 10) {
+          try {
+            while (qids.size() > 0) {
+              lastQid = qids.remove(0);
+              List<debugOutput> outputArray = utils.getDebugResult(lastQid);
+              for (debugOutput res : outputArray) {
+                for (int i = 0; i < names.size(); i++) {
+                  time[i] += res.time.get(i);
+                }
+              }
+              offset++;
+            }
+          } catch (Exception e) {
+            System.out.println("the offset is:" + offset + " at qid:" + lastQid);
+            throw e;
+          }
+        }
+      }
+
+      if (qids.size() >= 0) {
         try {
           while (qids.size() > 0) {
             lastQid = qids.remove(0);
@@ -242,25 +266,8 @@ public class FeatureExtractorCli {
           throw e;
         }
       }
+    }
 
-    }
-    if (qids.size() >= 0) {
-      try {
-        while (qids.size() > 0) {
-          lastQid = qids.remove(0);
-          List<debugOutput> outputArray = utils.getDebugResult(lastQid);
-          for (debugOutput res : outputArray) {
-            for (int i = 0; i < names.size(); i++) {
-              time[i] += res.time.get(i);
-            }
-          }
-          offset++;
-        }
-      } catch (Exception e) {
-        System.out.println("the offset is:" + offset + "at qid:" + lastQid);
-        throw e;
-      }
-    }
     long executionEnd = System.nanoTime();
     long sumtime = 0;
     for(int i = 0; i < names.size(); i++){
@@ -271,7 +278,6 @@ public class FeatureExtractorCli {
       String.format("%.2f", time[i]*100.0/sumtime) + "%");
     }
     utils.close();
-    reader.close();
     long end = System.nanoTime();
     long overallTime = end - start;
     long overhead = overallTime-(executionEnd - executionStart);

@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URL;
 import java.nio.file.Files;
@@ -69,6 +70,10 @@ public class RelevanceJudgments {
     } catch (IOException e) {
       throw new IOException("Could not read qrels file!");
     }
+  }
+
+  public RelevanceJudgments(Map<String, Map<String, Integer>> qrels) {
+    this.qrels = qrels;
   }
 
   /**
@@ -203,5 +208,62 @@ public class RelevanceJudgments {
       throw new IOException("Error downloading topics from " + qrelsURL);
     }
     return qrelsFile.toPath();
+  }
+
+  public static RelevanceJudgments fromQrels(Path qrelsPath) throws IOException {
+    Map<String, Map<String, Integer>> qrels = new HashMap<>();
+
+    // First read in relevance judgments from the qrels file.
+    try (BufferedReader br = new BufferedReader(new FileReader(qrelsPath.toString()))) {
+      String line;
+      while ((line = br.readLine()) != null) {
+        String[] arr = line.split("[\\s\\t]+");
+        String qid = arr[0];
+        String docid = arr[2];
+        int grade = Integer.parseInt(arr[3]);
+
+        // We're not interested in negative judgments.
+        if (grade < 0)
+          continue;
+
+        if (qrels.containsKey(qid)) {
+          qrels.get(qid).put(docid, grade);
+        } else {
+          Map<String, Integer> t = new HashMap<>();
+          t.put(docid, grade);
+          qrels.put(qid, t);
+        }
+      }
+    }
+
+    return new RelevanceJudgments(qrels);
+  }
+
+  public static RelevanceJudgments fromQrels(InputStream inputStream) throws IOException {
+    Map<String, Map<String, Integer>> qrels = new HashMap<>();
+    
+    // Don't close the inputStream since we didn't create it
+    BufferedReader br = new BufferedReader(new InputStreamReader(inputStream));
+    String line;
+    while ((line = br.readLine()) != null) {
+      String[] arr = line.split("[\\s\\t]+");
+      String qid = arr[0];
+      String docid = arr[2];
+      int grade = Integer.parseInt(arr[3]);
+
+      // We're not interested in negative judgments.
+      if (grade < 0)
+        continue;
+
+      if (qrels.containsKey(qid)) {
+        qrels.get(qid).put(docid, grade);
+      } else {
+        Map<String, Integer> t = new HashMap<>();
+        t.put(docid, grade);
+        qrels.put(qid, t);
+      }
+    }
+
+    return new RelevanceJudgments(qrels);
   }
 }

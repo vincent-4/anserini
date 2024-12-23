@@ -80,18 +80,17 @@ public class IbmModel1 implements FeatureExtractor {
 
     public ConcurrentHashMap<Integer, Pair<Integer, String>> loadVoc(String fileName) throws IOException {
         ConcurrentHashMap<Integer, Pair<Integer, String>> res = new ConcurrentHashMap<>();
-        BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(fileName)));
-        String line = reader.readLine();
-        while (line != null) {
-            String[] parts = line.split("\\s");
-            int id = Integer.parseInt(parts[0]);
-            String voc = parts[1];
-            int freq = Integer.parseInt(parts[2]);
-            assert !res.containsKey(id);
-            res.put(id, Pair.of(freq, voc));
-            line = reader.readLine();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(fileName)))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split("\\s");
+                int id = Integer.parseInt(parts[0]);
+                String voc = parts[1];
+                int freq = Integer.parseInt(parts[2]);
+                assert !res.containsKey(id);
+                res.put(id, Pair.of(freq, voc));
+            }
         }
-        reader.close();
         return res;
     }
 
@@ -105,29 +104,30 @@ public class IbmModel1 implements FeatureExtractor {
 
     public ConcurrentHashMap<Integer, Map<Integer, Float>> loadTran(String fileName) throws IOException {
         ConcurrentHashMap<Integer, Map<Integer, Float>> res = new ConcurrentHashMap<>();
-        DataInputStream in = new DataInputStream(new FileInputStream(fileName));
-        Map<Integer, Float> bufferSourceMap = null;
-        Integer bufferSourceKey = null;
-        while (in.available() > 0) {
-            int sourceID = in.readInt();
-            assert sourceID == 0 | sourceVoc.containsKey(sourceID);
-            int targetID = in.readInt();
-            assert targetVoc.containsKey(targetID);
-            float tranProb = in.readFloat();
-            assert tranProb >= 1e-3f;
-            if(bufferSourceKey!=null&&bufferSourceKey==sourceID)
-                bufferSourceMap.put(targetID, tranProb);
-            else{
-                if (!res.containsKey(sourceID)) {
-                    Map<Integer, Float> word2prob = new ConcurrentHashMap<>();
-                    word2prob.put(targetID, tranProb);
-                    res.put(sourceID, word2prob);
-                    bufferSourceKey = sourceID;
-                    bufferSourceMap = word2prob;
-                } else {
-                    bufferSourceKey = sourceID;
-                    bufferSourceMap = res.get(sourceID);
+        try (DataInputStream in = new DataInputStream(new FileInputStream(fileName))) {
+            Map<Integer, Float> bufferSourceMap = null;
+            Integer bufferSourceKey = null;
+            while (in.available() > 0) {
+                int sourceID = in.readInt();
+                assert sourceID == 0 | sourceVoc.containsKey(sourceID);
+                int targetID = in.readInt();
+                assert targetVoc.containsKey(targetID);
+                float tranProb = in.readFloat();
+                assert tranProb >= 1e-3f;
+                if(bufferSourceKey!=null&&bufferSourceKey==sourceID)
                     bufferSourceMap.put(targetID, tranProb);
+                else{
+                    if (!res.containsKey(sourceID)) {
+                        Map<Integer, Float> word2prob = new ConcurrentHashMap<>();
+                        word2prob.put(targetID, tranProb);
+                        res.put(sourceID, word2prob);
+                        bufferSourceKey = sourceID;
+                        bufferSourceMap = word2prob;
+                    } else {
+                        bufferSourceKey = sourceID;
+                        bufferSourceMap = res.get(sourceID);
+                        bufferSourceMap.put(targetID, tranProb);
+                    }
                 }
             }
         }
