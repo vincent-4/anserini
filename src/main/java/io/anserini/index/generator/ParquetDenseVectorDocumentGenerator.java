@@ -47,10 +47,16 @@ public class ParquetDenseVectorDocumentGenerator<T extends SourceDocument> imple
    */
   @Override
   public Document createDocument(T src) throws InvalidDocumentException {
-
     try {
-      // Parse vector data from document contents
-      float[] contents = parseVectorFromString(src.contents());
+      float[] contents;
+
+      // Try direct vector access first for efficiency, fall back to string parsing for backward compatibility
+      contents = src.vector();
+      
+      if (contents == null) {
+        contents = parseVectorFromString(src.contents());
+      }
+
       if (contents == null || contents.length == 0) {
         LOG.error("Vector data is null or empty for document ID: " + src.id());
         throw new InvalidDocumentException();
