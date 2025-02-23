@@ -829,10 +829,10 @@ public final class SearchCollection<K extends Comparable<K>> implements Runnable
       if (args.encoder != null) {
         try {
           this.queryEncoder = (SparseEncoder) Class
-              .forName(String.format("io.anserini.encoder.sparse.%sEncoder", args.encoder))
+              .forName(args.encoder)
               .getConstructor().newInstance();
         } catch (Exception e) {
-          throw new RuntimeException();
+          throw new RuntimeException(String.format("Unable to load Encoder \"%s\".", args.encoder), e);
         }
       } else {
         this.queryEncoder = null;
