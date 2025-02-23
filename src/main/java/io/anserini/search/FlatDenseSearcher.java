@@ -119,10 +119,10 @@ public class FlatDenseSearcher<K extends Comparable<K>> extends BaseSearcher<K> 
     if (args.encoder != null) {
       try {
         encoder = (DenseEncoder) Class
-            .forName(String.format("io.anserini.encoder.dense.%sEncoder", args.encoder))
+            .forName(args.encoder)
             .getConstructor().newInstance();
       } catch (Exception e) {
-        throw new IllegalArgumentException(String.format("Unable to load Encoder \"%s\".", args.encoder));
+        throw new IllegalArgumentException(String.format("Unable to load Encoder \"%s\".", args.encoder), e);
       }
     } else {
       encoder = null;
