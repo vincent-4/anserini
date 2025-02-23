@@ -358,7 +358,7 @@ public enum IndexInfo {
           "https://rgw.cs.uwaterloo.ca/pyserini/indexes/lucene/lucene-hnsw-int8.msmarco-v2.1-doc-segmented-shard09.arctic-embed-l.20250114.4884f5.tar.gz" },
       "5e580bb7eb9ee2bb6bfa492b3430c17d",
       IndexType.DENSE_HNSW,
-      "ArcticEmbedLEncoder.classEncoder.class",
+      ArcticEmbedLEncoder.class,
       InvertedDenseVectorQueryGenerator.class,
       "msmarco-v2.1-doc-segmented"),
 
