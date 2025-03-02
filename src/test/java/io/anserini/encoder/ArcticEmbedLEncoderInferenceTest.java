@@ -892,19 +892,37 @@ public class ArcticEmbedLEncoderInferenceTest extends DenseEncoderInferenceTest 
         // Initialize attention mask with all ones
         Arrays.fill(attentionMask[0], 1);
 
-        inputs.put("input_ids", OnnxTensor.createTensor(env, tokenIds));
-        inputs.put("attention_mask", OnnxTensor.createTensor(env, attentionMask));
-        inputs.put("token_type_ids", OnnxTensor.createTensor(env, tokenTypeIds));
+        // inputs.put("input_ids", OnnxTensor.createTensor(env, tokenIds));
+        // inputs.put("attention_mask", OnnxTensor.createTensor(env, attentionMask));
+        // inputs.put("token_type_ids", OnnxTensor.createTensor(env, tokenTypeIds));
 
-        try (Result results = session.run(inputs)) {
-          float[][][] embeddings = (float[][][]) ((OnnxTensor) results.get(0)).getValue();
-          float[] weights = new float[EMBEDDING_DIM];
-          System.arraycopy(embeddings[0][0], 0, weights, 0, 1024);
+        // try (Result results = session.run(inputs)) {
+        //   float[][][] embeddings = (float[][][]) ((OnnxTensor) results.get(0)).getValue();
+        //   float[] weights = new float[EMBEDDING_DIM];
+        //   System.arraycopy(embeddings[0][0], 0, weights, 0, 1024);
 
-          weights = OnnxEncoder.normalize(weights);
-          assertArrayEquals(expectedEmbeddings, weights, 1e-4f);
-        }
+        //   weights = OnnxEncoder.normalize(weights);
+        //   assertArrayEquals(expectedEmbeddings, weights, 1e-4f);
+        // }
       }
+    }
+  }
+
+  @Test
+  public void testLongQuery() throws OrtException, IOException, URISyntaxException {
+    try {
+      ArcticEmbedLEncoder encoder = new ArcticEmbedLEncoder();
+
+      for (Object[] example : LONG_EXAMPLES) {
+        String[] inputStrings = (String[]) example[0];
+        float[] expectedWeights = (float[]) example[1];
+        float[] embeddings = encoder.encode(inputStrings[0]);
+
+        assertArrayEquals(expectedWeights, embeddings, 1e-4f);
+        assertEquals(1024, embeddings.length);
+      }
+    } catch (Exception e) {
+      throw e;
     }
   }
 }
