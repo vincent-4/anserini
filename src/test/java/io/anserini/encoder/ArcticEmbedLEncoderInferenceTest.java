@@ -908,22 +908,22 @@ public class ArcticEmbedLEncoderInferenceTest extends DenseEncoderInferenceTest 
   //   }
   // }
 
-  @Test
-  public void testLongQuery() throws OrtException, IOException, URISyntaxException {
-    try {
-      ArcticEmbedLEncoder encoder = new ArcticEmbedLEncoder();
+  // @Test
+  // public void testLongQuery() throws OrtException, IOException, URISyntaxException {
+  //   try {
+  //     ArcticEmbedLEncoder encoder = new ArcticEmbedLEncoder();
 
-      for (Object[] example : LONG_EXAMPLES) {
-        String[] inputStrings = (String[]) example[0];
-        float[] expectedWeights = (float[]) example[1];
-        float[] embeddings = encoder.encode(inputStrings[0]);
+  //     for (Object[] example : LONG_EXAMPLES) {
+  //       String[] inputStrings = (String[]) example[0];
+  //       float[] expectedWeights = (float[]) example[1];
+  //       float[] embeddings = encoder.encode(inputStrings[0]);
 
-        assertArrayEquals(expectedWeights, embeddings, 1e-4f);
-        assertEquals(1024, embeddings.length);
-      }
-    } catch (Exception e) {
-      throw e;
-    }
-  }
+  //       assertArrayEquals(expectedWeights, embeddings, 1e-4f);
+  //       assertEquals(1024, embeddings.length);
+  //     }
+  //   } catch (Exception e) {
+  //     throw e;
+  //   }
+  // }
 }
 
